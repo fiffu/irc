@@ -1,0 +1,7 @@
+*
+!go.mod
+!go.sum
+!*.go
+!favicon.png
+!gamja-config.json
+!gamja-tabs.js

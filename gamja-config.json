@@ -1,0 +1,9 @@
+{
+	"server": {
+		"url": "/ws",
+		"auth": "disabled",
+		"autoconnect": true,
+		"autojoin": "#lobby",
+		"ping": 30
+	}
+}

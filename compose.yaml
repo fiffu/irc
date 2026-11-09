@@ -1,0 +1,37 @@
+# Local test stack with dummy secrets. NOT for production.
+#   docker compose up --build
+#   open http://localhost:8080/?k=local
+# Oper login in gamja: /quote OPER admin local
+services:
+  # splash, with gamja built in.
+  splash:
+    build: .
+    environment:
+      INVITE_KEY: local
+      COOKIE_KEY: local
+      # The cookie is Secure by default, and this stack serves plain HTTP.
+      INSECURE_COOKIE: "1"
+      PUBLIC_URL: http://localhost:8080
+      ERGO_URL: http://ergo:8097
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      - ergo
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  ergo:
+    image: ghcr.io/ergochat/ergo:v2.19.1@sha256:ef885e44f7fa19101bbbc41baef11dc280dc8107465dccaf6f0860f41b48a682
+    user: "65534:65534"
+    # Skip the image's run.sh: it writes a config and certs into /ircd, which only root can write.
+    entrypoint: ["/ircd-bin/ergo"]
+    command: ["run", "--conf", "/ircd/ircd.yaml"]
+    volumes:
+      - ./dev/ergo.yaml:/ircd/ircd.yaml:ro
+      # Over /var/tmp so the volume gets that folder's mode (1777) and uid 65534 can write to it.
+      - ergo-data:/var/tmp
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+volumes:
+  ergo-data:
