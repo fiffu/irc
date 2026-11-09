@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
@@ -40,10 +41,14 @@ func (s *server) setSession(w http.ResponseWriter, nick string) {
 	}
 }
 
-// signSession returns "<expiry unix seconds>.<base64url HMAC-SHA256 of the expiry>".
+// signSession returns "<expiry unix seconds>.<nonce>.<base64url HMAC-SHA256 of the part before it>".
+// The random nonce makes each login's cookie unique. splash keeps one Ergo connection per cookie
+// value, so two users who log in during the same second must not share one.
 func (s *server) signSession(expiry time.Time) string {
-	exp := strconv.FormatInt(expiry.Unix(), 10)
-	return exp + "." + base64.RawURLEncoding.EncodeToString(s.mac(exp))
+	nonce := make([]byte, 16)
+	rand.Read(nonce)
+	payload := strconv.FormatInt(expiry.Unix(), 10) + "." + base64.RawURLEncoding.EncodeToString(nonce)
+	return payload + "." + base64.RawURLEncoding.EncodeToString(s.mac(payload))
 }
 
 func (s *server) validSession(r *http.Request) bool {
@@ -51,14 +56,17 @@ func (s *server) validSession(r *http.Request) bool {
 	if err != nil {
 		return false
 	}
-	exp, sig, ok := strings.Cut(c.Value, ".")
-	if !ok {
+	// Cookies from before the nonce have the form "<expiry>.<mac>". They stay valid until they expire.
+	i := strings.LastIndexByte(c.Value, '.')
+	if i < 0 {
 		return false
 	}
+	payload, sig := c.Value[:i], c.Value[i+1:]
 	got, err := base64.RawURLEncoding.DecodeString(sig)
-	if err != nil || !hmac.Equal(got, s.mac(exp)) {
+	if err != nil || !hmac.Equal(got, s.mac(payload)) {
 		return false
 	}
+	exp, _, _ := strings.Cut(payload, ".")
 	unix, err := strconv.ParseInt(exp, 10, 64)
 	if err != nil {
 		return false
