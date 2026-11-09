@@ -7,6 +7,7 @@
 # - accounts: login on, self-registration and nick reservation off; the oper creates accounts
 # - channels.registration.operator-only: true, so only the oper registers channels
 # - webirc: sample gateway commented out
+# - opers.admin: visible (hidden: false) with vhost "admin"
 # - opers.admin.password: hash of the dummy password "local"
 # - datastore and lock file on the /var/tmp volume, languages path moved, for a non-root container
 # - history: persistent in SQLite on the /var/tmp volume, also for unregistered channels
@@ -659,7 +660,7 @@ channels:
 
     # if this is true, new channels can only be created by operators with the
     # `chanreg` operator capability
-    operator-only-creation: true
+    operator-only-creation: false
 
     # channel registration - requires an account
     registration:
@@ -740,13 +741,14 @@ opers:
 
         # traditionally, operator status is visible to unprivileged users in
         # WHO and WHOIS responses. this can be disabled with 'hidden'.
-        hidden: true
+        # Visible, so users can tell the real admin from someone using the same nick.
+        hidden: false
 
         # custom whois line (if `hidden` is enabled, visible only to other operators)
         whois-line: is the server administrator
 
         # custom hostname (ignored if `hidden` is enabled)
-        #vhost: "staff"
+        vhost: "admin"
 
         # modes are modes to auto-set upon opering-up. uncomment this to automatically
         # enable snomasks ("server notification masks" that alert you to server events;
